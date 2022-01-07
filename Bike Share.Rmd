@@ -1,0 +1,395 @@
+Bike Share data reveiw by Tyler Eller
+========================================================
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+library(ggplot2)
+library(dplyr)
+```
+
+```{r echo=FALSE, Load_the_Data}
+
+#confirm the right working directory
+getwd()
+# Load the Data
+ny = read.csv('new-york-city.csv')
+wash = read.csv('washington.csv')
+chi = read.csv('chicago.csv')
+
+#Before I can do analyse I will have to do a little data cleaning. 
+#Add missing col. to Wash with NA set as the value. 
+wash$Gender <-NA 
+wash$Birth.Year <- NA
+
+#Now I add a city col, so that when I combined the data I can still figure out 
+#what city is still used. 
+ny$city <-"ny"
+wash$city <- "wash"
+chi$city <- "chi"
+
+#As I want all the date accessed at once, I will combined it into one dataset.  
+cites <- rbind(ny,wash)
+cites <- rbind(cites,chi)
+
+#Function to change Birth.Year to Age for reliability. 
+birth_year_to_age <- function(data){
+    names(data)[names(data)=='Birth.Year'] <-'Age'
+    data$Age <- 2020-data$Age
+    return(data)
+}
+
+#Let's change ny,cites, and chi Birth.Year to Age.
+# ** did not change wash as it has not Birth.Year data provided. 
+cites <- birth_year_to_age(cites)
+
+#make sure the data looks as expected. 
+head(cites,5)
+
+```
+
+Introduction: This data reviews data provided by Motivate about the bike-sharing 
+system in New York, Washington D.C, and Chicago. We will mainly be focusing on 
+the customer in this data set. 
+
+# Univariate Plots Section
+
+let's take a look at the structure of the data. 
+```{r echo = FALSE}
+str(cites)
+
+```
+
+
+```{r echo=FALSE, Univariate_Plots}
+
+#Making a data set with only NY and CHI as WASH has no gender data. 
+ny_chi_collection <- rbind(ny,chi)
+
+```
+
+
+```{r echo=FALSE,}
+#let's start by looking at the gender distribution 
+total <- sort(table(ny_chi_collection$Gender))
+na.omit(total)
+#Let's look at percentages 
+round((total/length(ny_chi_collection$Gender)*100), digits =2 )
+
+```
+
+```{r echo = FALSE}
+
+ggplot(aes(x = Gender), data = na.omit(ny_chi_collection)) +
+    geom_bar(position = 'dodge', color="black") +
+    ggtitle('Rider Count') +
+    scale_x_discrete(labels = c('', 'Female', 'Male')) +
+    labs(y = 'Number of Riders', x = 'Gender')
+```
+
+Now that we have an understanding of the break down of gender let's look at age. 
+
+```{r echo = FALSE}
+#Create a function to make age tables
+age_table_creation <- function(data){
+    age_table <- table(data$Age)
+    age_table <- sort(age_table, decreasing=TRUE)
+    age_table
+}
+
+#Let's look at the age breakdown of cites. 
+age_table_creation(cites)
+```
+Here you can see that the top five users are in their early 30's and that a 
+large part of their user base is in their early 30's. Also, I'm assuming that a 
+few of their outlets are incorrect or fabrication, such the people at 134.
+
+```{r echo = FALSE}
+ggplot(aes(x= Age), data = cites) +
+    geom_bar(position = 'dodge', color="black") +
+    ggtitle('Ages by Gender for all Cites') +
+    labs(y = 'Number of Riders', x = 'Age') 
+```
+The above graph seems to be stretched out by outlines. 
+Lets scale down to 20-60 to see if the data is better. 
+
+```{r echo = FALSE}
+ggplot(aes(x= Age), data = cites) +
+    geom_bar(position = 'dodge', color="black") +
+    scale_x_continuous(limits =  c(20,50))+
+    ggtitle('Ages by Gender for all Cites') +
+    labs(y = 'Number of Riders', x = 'Age') 
+```
+
+```{r echo = FALSE}
+cites %>%
+count(User.Type)
+
+```
+
+
+```{r echo = FALSE}
+ggplot(aes(x= User.Type), data = cites) +
+    geom_bar(position = 'dodge', color="black") +
+    ggtitle('User Types') +
+    labs(y = 'Count of users', x="User Types") 
+
+
+```
+
+Subscriber is by far the most common type of user. 
+```{r echo = FALSE}
+summary(cites$Trip.Duration)
+```
+Interesting that the shortest duration is an hour, I'd expected much shorter
+then that. 
+
+
+# Univariate Analysis 
+
+### What is the structure of the data?
+There are 900000 observations of customers with ten variables.
+Observations:
+- Most of the customers are in the age range of 30-34. 
+- Bike share seems to be way more popular with male customers. 
+- there is an equal amount of observations across the cities.
+- The most common starting destination is 1 Ave & E 16 St as the most common
+  Endstation. Could this be a sign that most trips are round trips? 
+
+
+
+### What is/are the main feature(s) of interest in your dataset?
+I found the age and gender data to be interesting. This data could be analyzed. 
+This
+data could help better understand Motivate customer base.
+
+
+### What other features in the dataset do you think will help support your \
+investigation into your feature(s) of interest?
+
+I think delving into the users' stats by the city could be interesting. If one 
+city 
+has a higher customer count that is female you could explore why that is and
+see if you could increase the number of female users in other cities. 
+
+
+### Did you create any new variables from existing variables in the dataset?
+Yes, I made the Age category as it was easier to read than just looking at
+the birth_year type. 
+
+### Of the features you investigated, were there any unusual distributions? \
+Did you perform any operations on the data to tidy, adjust, or change the form \
+of the data? If so, why did you do this?
+
+No, this data was pretty clean and did not need any wrangling. 
+wrangling
+
+
+# Bivariate Plots Section
+
+Earlier, we took a look at genders for all cites, now let's take a look at
+at Genders broken down by city
+
+```{r echo=FALSE, Bivariate_Plots}
+
+#let's now take a look at gender broken down by cities.
+ggplot(aes(x = Gender, fill = city), data = na.omit(ny_chi_collection)) +
+    geom_bar(position = 'dodge', color="black") +
+    ggtitle('Rider Count') +
+    scale_x_discrete(labels = c('', 'Female', 'Male')) +
+    labs(y = 'Gender by city ', x = 'Gender') +
+    scale_fill_manual("Cites", values = c("chi" = "Green", "ny" = "Blue"))
+
+```
+
+We are only able to see Chicago and New York as Washington does not provided
+gender data. The service seems more popular in New York then in Chicago, for
+both genders. 
+
+Lets look at gender and age. 
+
+```{r echo = FALSE}
+ny_chi_collection <- birth_year_to_age(ny_chi_collection)
+
+ggplot(aes(x= Age, fill = Gender), data = ny_chi_collection) +
+    geom_bar(position = 'dodge', color="black") +
+    scale_x_continuous(limits = c(20 ,60))+
+    ggtitle('Ages by Gender for all Cites') +
+    labs(y = 'Number of Riders', x = 'Age') +
+    scale_fill_manual("Gender Key", values = c("NA" = "Red","Male" = "Green", "Female" = "Blue" ))
+```
+
+This chart shows the gap between male and email users. Female users in
+their early 20's seem to be the closest to their male counterpart. If I was
+designing a business strategy proposal around this data, I would suggest a 
+campaign to get more young female riders as they seem the most interested and 
+have the opportunity to stay the longest with the service. 
+
+As Males are so much more than females, it's hard to tell they are True count.
+Let's dive down into the data and look at females only.
+
+```{r echo = FALSE}
+
+female <- subset(ny_chi_collection, Gender == "Female",select = X:city)
+
+ggplot(aes(x= Age, fill = Gender), data = female) +
+    geom_bar(position = 'dodge', color="black")+
+    scale_x_continuous(limits = c(20 ,60))+
+    ggtitle('Female Age') +
+    labs(y = 'Number of Riders', x = 'Age') 
+```
+
+While the number of male customers outweighs the number of female users, I
+find it interesting that they have the same shape. I wonder if 
+the bike share service does have many under 25 users, and most are over the age 
+of 30 due to income overage. It may be that at 30, people start having enough
+income to use on extra survives for leisure items. Another data point I'd love to 
+delve into is the reason for use, looking at lessor or transportation.  
+
+```{r echo = FALSE}
+ny_chi_collection <- na.omit(birth_year_to_age(ny_chi_collection))
+
+
+ggplot(ny_chi_collection, aes(x =Gender, y= Age))+
+geom_boxplot(notch = TRUE, outlier.colour = "red")+
+#scale_y_continuous(limits = c(20,100))+  
+labs(title="Age By Gender")
+```
+
+```{r echo = FALSE}
+ggplot(aes(x=Age , y = Trip.Duration), data = cites)+
+  geom_point()+
+  #scale_x_continuous(limits = c(20,100))+
+  #scale_y_continuous(limits = c(60,50000))+
+  labs(title="Trip Duration")
+```
+
+I find it interesting that age does not effect the trip distance.
+Outlines of extremes trips are scattered throught the ages even into the 70's. 
+
+```{r echo=FALSE, Multivariate_Plots}
+ggplot(aes(x= User.Type, fill = city), data = cites) +
+    geom_bar(position = 'dodge', color="black") +
+    ggtitle('User types by city') +
+    labs(y = 'Rider Count', x = 'User Types') +
+    scale_fill_manual("Cites", values = c("chi" = "Blue","ny" = "Green",
+                                          "wash" = "Red"))
+
+```
+
+
+# Multivariate Plots Section
+
+```{r echo = FALSE}
+ggplot(aes(x=Age , y = Trip.Duration, color=Gender), data = cites)+
+  geom_point()+
+  scale_x_continuous(limits = c(20,100))+
+  scale_y_continuous(limits = c(60,50000))+
+  labs(title="Trip Duration by Gender")
+```
+
+
+```{r echo = FALSE}
+ggplot(aes(x=Age , y = Trip.Duration, color=city), data = cites)+
+  geom_point()+
+  scale_x_continuous(limits = c(20,100))+
+  scale_y_continuous(limits = c(60,50000))+
+  labs(title="Trip Duration by City")
+```
+
+```{r echo = FALSE}
+ggplot(aes(x=Age , y = Trip.Duration, color=User.Type), data = cites)+
+  geom_point()+
+  scale_x_continuous(limits = c(20,100))+
+  scale_y_continuous(limits = c(60,50000))+
+  labs(title="Trip Duration by City")
+```
+
+# Multivariate Analysis
+
+In this section of code, I was trying to see how gender, age, city, and 
+subscriber type to see if we could figure out who the super users are. These are the 
+outliers of trip distance. 
+
+In the first graph, you can tell that up until their 50's super users are just about
+as likely to be male and female. And that some of the most extended trips belong to
+females. 
+
+The second chart shows that superusers are also most likely to be from New.
+York or Chicago. Though a little is more likely to be someone from New York. 
+
+In the third chart, expectedly supers users are subscribers. 
+
+If I were to go further with this analysis, I would be interested in adding some 
+machine learning to be able to use this data to find a clear answer to this supper 
+user. Also, I'd love to see more historical data so that I can make predictions 
+on changes.As well as run some experimental campaigns and see if it changes the
+data at all. 
+
+
+------
+
+# Final Plots and Summary
+
+### Plot One
+```{r echo = FALSE}
+ggplot(aes(x= Age, fill = Gender), data = ny_chi_collection) +
+    geom_bar(position = 'dodge', color="black") +
+    scale_x_continuous(limits = c(20 ,60))+
+    ggtitle('Ages by Gender for all Cites') +
+    labs(y = 'Number of Riders', x = 'Age') +
+    scale_fill_manual("Gender Key", values = c("NA" = "Red","Male" = "Green", "Female" = "Blue" ))
+```
+
+
+### Description One
+This graph show gender vers age. While both graphs have the same shape the weight
+of having males be 64% of the users is really shown in this graph. 
+
+### Plot Two
+```{r echo = FALSE}
+ggplot(aes(x=Age , y = Trip.Duration, color=city), data = cites)+
+  geom_point()+
+  scale_x_continuous(limits = c(20,100))+
+  scale_y_continuous(limits = c(60,50000))+
+  labs(title="Trip Duration by City")
+```
+
+### Description Two
+This graph shows the diffrence between age and gender in the affects of long 
+distance rides. As you can see while there are many more male riders, the 
+distrbution of longdistance riders is still preety even. 
+
+### Plot Three
+```{r echo=FALSE, Plot_Three}
+ggplot(aes(x=Age , y = Trip.Duration, color=User.Type), data = cites)+
+  geom_point()+
+  scale_x_continuous(limits = c(20,100))+
+  scale_y_continuous(limits = c(60,50000))+
+  labs(title="Trip Duration by City")
+```
+
+### Description Three
+Here is a plot showing the age and trip Duration compared to User types. 
+Looks like most of the long distance riders already have subscribtions.
+
+------
+
+# Reflection
+In the first plot, we genuinely see the difference in male/female riders and the 
+shape of age. The vast amount of customers that are male in the age of 
+30-35 shaped all other data points that we looked at in this analysis.
+
+
+It was in final polt three in the analyses of the User types, Age and Trip 
+The duration that I discovered something interesting, even though males outweigh 
+females, many of super users are female. With the younger generation of 20-25 
+females using the service nearly as much as males and many log distant riders
+being female, I felt that there could be a massive growth area.
+
+This data set was clean and promising at first. I think the biggest struggle
+I came to was wishing I had more data. The Washington D.C. data had no gender 
+data, which left me feeling like I was missing a large piece of my puzzle. 
+Also, the data set did not tell me the show was repeat customers. So while, in 
+final chart # 3 it seems like there is a lot of long distant riders they could 
+be a lot of repeat customers.
+
+
