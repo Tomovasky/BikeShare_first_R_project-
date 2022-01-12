@@ -1,9 +1,9 @@
 #confirm the right working directory
-getwd()
+
 # Load the Data
-ny = read.csv('new-york-city.csv')
-wash = read.csv('washington.csv')
-chi = read.csv('chicago.csv')
+ny = read.csv('new-york-city.csv', na.strings = (c("", "NA")))
+wash = read.csv('washington.csv',na.strings = (c("", "NA")))
+chi = read.csv('chicago.csv',na.strings = (c("", "NA")))
 
 #Before I can do analyse I will have to do a little data cleaning. 
 #Add missing col. to Wash with NA set as the value. 
@@ -32,6 +32,15 @@ birth_year_to_age <- function(data){
 cites <- birth_year_to_age(cites)
 
 
+#Duration is in seconds for easier evaluating lets change to min. 
+convert_to_min <- function(data){
+  data$Trip.Duration <- data$Trip.Duration/60
+  return(data)
+}
+
+cites <- convert_to_min(cites)
+
+
 #Save cites to an csv file 
 
-write.csv2(cites,"cites.csv", row.names = TRUE)
+write.csv(cites,"cites.csv", row.names = TRUE)
